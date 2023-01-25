@@ -9,15 +9,17 @@ import map_vis_without_lanelet
 import loader
 import plot
 
-# Path of Map, Pedestrian & Vehicle Datasets
-map_path = 'maps/DR_DEU_Roundabout_OF.osm'
-map_path = loader.getmappath()
 
+#map_path = 'maps/DR_DEU_Roundabout_OF.osm'
 #pedes_df = pd.read_csv("recorded_trackfiles/DR_DEU_Roundabout_OF/pedestrian_tracks_000.csv")
-pedes_df = pd.read_csv(loader.getpeddspath())
-
 #vehicles_df = pd.read_csv("recorded_trackfiles/DR_DEU_Roundabout_OF/vehicle_tracks_000.csv")
-vehicles_df = pd.read_csv(loader.getvehdspath())
+
+# Path of Map, Pedestrian & Vehicle Datasets
+map_path, ped_df_path, veh_df_path = loader.getpath()
+
+# Converting Datasets into Dataframe
+pedes_df = pd.read_csv(ped_df_path)
+vehicles_df = pd.read_csv(veh_df_path)
 
 
 
@@ -32,7 +34,6 @@ vehicles_avg_speed = pd.DataFrame(columns =["veh_track_id", "average speed"])
 fig, axes = plt.subplots(1, 1)
 map_vis_without_lanelet.draw_map_without_lanelet(map_path, axes, 0, 0)
 mappoints = map_vis_without_lanelet.getpoints()
-map_vis_without_lanelet.removefile()
 
 pedstartx = []
 pedstarty = []

@@ -15,14 +15,13 @@ import dict_utils
 
 xs = []
 ys = []
+mode = 0
 
-   
-def removefile():
-    if os.path.isfile("maps/mappoints.csv"):
-        os.remove("maps/mappoints.csv") 
-    
 def getpoints():
-    mappoints = pd.read_csv("maps/mappoints.csv")
+    global mode
+    mode = 1
+    mappoints = pd.read_csv("mappoints.csv")
+    os.remove("mappoints.csv")
     return mappoints
 
 class Point:
@@ -156,13 +155,11 @@ def draw_map_without_lanelet(filename, axes, lat_origin, lon_origin):
     if len(unknown_linestring_types) != 0:
         print("Found the following unknown types, did not plot them: " + str(unknown_linestring_types))
     
-    if False == os.path.exists("maps/mappoints.csv"):
-        tempdict = {'x': xs, 'y': ys}
-        df = pd.DataFrame(tempdict)
-        print(df)
-        df.to_csv("maps/mappoints.csv")
-
-#fig, axes = plt.subplots(1, 1)
-#removefile()
-#draw_map_without_lanelet('maps/DR_DEU_Roundabout_OF.osm', axes, 0, 0)  # Plot Map
-#getpoints()
+    if mode == 0:
+        if False == os.path.exists("mappoints.csv"):
+            tempdict = {'x': xs, 'y': ys}
+            df = pd.DataFrame(tempdict)
+            print(df)
+            print("yes")
+            print("yes")
+            df.to_csv("mappoints.csv")
