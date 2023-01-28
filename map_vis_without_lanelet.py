@@ -159,7 +159,4 @@ def draw_map_without_lanelet(filename, axes, lat_origin, lon_origin):
         if False == os.path.exists("mappoints.csv"):
             tempdict = {'x': xs, 'y': ys}
             df = pd.DataFrame(tempdict)
-            print(df)
-            print("yes")
-            print("yes")
             df.to_csv("mappoints.csv")

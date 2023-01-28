@@ -4,12 +4,91 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 
 # Use map_vis_without_Lanelet library to visual Map
 import map_vis_without_lanelet
-import loader
 
+def one(vehicles_df, pedes_df, interact_df, map_path):
+    
+    
+    
+    # to subplot only one visual
+    fig, axes = plt.subplots(1, 1)
+    
+    # Create Array of vehicles & pedestrian timestamp
+    veh_ts = np.array(vehicles_df['timestamp_ms'], np.int64)
+    ped_ts = np.array(pedes_df['timestamp_ms'], np.int64)
+    all_timestamp_ms = np.sort(np.unique(np.concatenate((veh_ts,ped_ts))))
+    
+    interact_ts = np.array(interact_df['Timestamp'], np.int64)
+    interact_veh = np.array(interact_df['Vehicle TrackID'], np.int64)
+    interact_ped = np.array(interact_df['Pedestrian TrackID'])
+
+    # Initialize prev_plot_veh & prev_plot_ped as Empty Dataframe
+    # Use to store previously plotted data and reuse to plot
+    prev_plot_veh = pd.DataFrame()
+    prev_plot_ped = pd.DataFrame()
+    
+    mode = 0
+    
+    # Run Loop one by one for all timestamps
+    for ts in all_timestamp_ms:
+    
+        map_vis_without_lanelet.draw_map_without_lanelet(map_path, axes, 0, 0)  # Plot Map
+        plt.title("Timestamp: " + str(ts))                                       # Give title to Map
+        
+        same_ts_veh_df = pd.DataFrame()
+        for int_ts in interact_ts:
+            if int_ts == ts:
+                for int_veh in interact_veh:
+                # Add vehicles_df row in veh_df if vehicles_df and Current Loop's Timestamp are same
+                    temp = vehicles_df[vehicles_df['track_id'] == int_veh]
+                    same_ts_veh_df = pd.concat([same_ts_veh_df, temp])
+
+
+        same_ts_ped_df = pd.DataFrame()
+        for int_ts in interact_ts:
+            if int_ts == ts:
+                for int_ped in interact_ped:
+                # Add vehicles_df row in veh_df if vehicles_df and Current Loop's Timestamp are same
+                    temp = pedes_df[pedes_df['track_id'] == int_ped]
+                    same_ts_ped_df = pd.concat([same_ts_ped_df, temp])
+                    
+           
+        # Plot previously plotted vehicle & pedestrian coordinates to show highlighted 
+        # route where vehicles is moved out
+        if True == same_ts_ped_df.empty:
+            """
+            prev_plot_veh = pd.concat([prev_plot_veh, same_ts_veh_df], ignore_index = True)
+            plt.scatter(prev_plot_veh['x'], prev_plot_veh['y'], color="lightblue", s=prev_plot_veh['width'])
+        
+            prev_plot_ped = pd.concat([prev_plot_ped, same_ts_ped_df], ignore_index = True)
+            plt.scatter(prev_plot_ped['x'], prev_plot_ped['y'], color="orange", s=2)    
+            """
+            
+        # Plot Vehicles coordinate as per current loop's timestamp
+        plt.scatter(same_ts_veh_df['x'], same_ts_veh_df['y'], color="blue", s=same_ts_veh_df['width'])
+        for row in range(0,len(same_ts_veh_df['track_id'])):
+            x=same_ts_veh_df.iloc[row,4]                                        # Column 4 -> x
+            y=same_ts_veh_df.iloc[row,5]                                        # Column 5 -> y
+            track_id= int(same_ts_veh_df.iloc[row,0])                           # Column 0 -> track_id
+            plt.text(x, y+.5, str(track_id) , fontsize=7.5)
+        
+        # Plot Pedestrian coordinate as per current loop's timestamp
+        plt.scatter(same_ts_ped_df['x'], same_ts_ped_df['y'], color="red", s=2)
+        for row in range(0,len(same_ts_ped_df['track_id'])):
+            x=same_ts_ped_df.iloc[row,4]                                        # Column 4 -> x
+            y=same_ts_ped_df.iloc[row,5]                                        # Column 5 -> y
+            track_id= same_ts_ped_df.iloc[row,0]                                # Column 0 -> track_id
+            plt.text(x+.1, y+1, track_id , fontsize=7.5)
+            
+            # Plot Pedestrian interaction with vehicles on X Axis Label
+            plotinter = interact_df[interact_df['Pedestrian TrackID'] == track_id]
+            string = str(list(plotinter['Vehicle TrackID']))
+            plt.xlabel(str(track_id) + " can collide with vehicles: " + string)     
+            
+        plt.show()
+"""
 def one(vehicles_df, pedes_df, interaction_in_short, map_path):
     
     # to subplot only one visual
@@ -53,12 +132,12 @@ def one(vehicles_df, pedes_df, interaction_in_short, map_path):
             x=same_ts_veh_df.iloc[row,4]                                        # Column 4 -> x
             y=same_ts_veh_df.iloc[row,5]                                        # Column 5 -> y
             track_id= int(same_ts_veh_df.iloc[row,0])                           # Column 0 -> track_id
-            """
+            """"""
             if type(same_ts_veh_df.iloc[row,11]) is np.float64:
                 speed = str(round(same_ts_veh_df.iloc[row,11],2))
             else:
                 speed = same_ts_veh_df.iloc[row,11]
-            """
+            """"""
             plt.text(x, y+.5, str(track_id) , fontsize=7.5)
         
         # Plot Pedestrian coordinate as per current loop's timestamp
@@ -77,8 +156,8 @@ def one(vehicles_df, pedes_df, interaction_in_short, map_path):
         plt.show()
         
         
-
-
+"""
+"""
 def two(vehicles_df, pedes_df, interaction_in_short, map_path):
     
     # to subplot only one visual
@@ -155,12 +234,12 @@ def two(vehicles_df, pedes_df, interaction_in_short, map_path):
             x=same_ts_veh_df.iloc[row,4]                                        # Column 4 -> x
             y=same_ts_veh_df.iloc[row,5]                                        # Column 5 -> y
             track_id= int(same_ts_veh_df.iloc[row,0])                           # Column 0 -> track_id
-            """
+            """"""
             if type(same_ts_veh_df.iloc[row,11]) is np.float64:
                 speed = str(round(same_ts_veh_df.iloc[row,11],2))
             else:
                 speed = same_ts_veh_df.iloc[row,11]
-            """
+            """"""
             plt.text(x, y+.5, str(track_id) , fontsize=7.5)
         
         # Plot Pedestrian coordinate as per current loop's timestamp
@@ -177,3 +256,4 @@ def two(vehicles_df, pedes_df, interaction_in_short, map_path):
             plt.xlabel(str(track_id) + " can collide with vehicles: " + string)     
             
         plt.show()
+"""

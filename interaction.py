@@ -1,10 +1,86 @@
-
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
               #   Check Interaction between Pedestrian & Vehicles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
- def interact()   
-    interact = pd.DataFrame(columns =['Pedestrian TrackID', 'Vehicle TrackID', 'Timestamp','Gap', 'Speed'])                
+
+import pandas as pd
+import math 
+
+def interact(vehicles_df, pedes_df, all_veh_trackids, all_ped_trackids, ped_on_road_df):
     
+    interact = pd.DataFrame(columns =['Pedestrian TrackID', 'Vehicle TrackID', 'Timestamp','Gap'])
+    all_ped_ts = list()
+    
+    for row in range(0,len(ped_on_road_df)):
+        startts = ped_on_road_df.iloc[row,3]
+        endts = ped_on_road_df.iloc[row,6]
+        
+        for allts in range(startts, endts+100, 100):
+            all_ped_ts.append(allts)
+            
+    for single_ts in all_ped_ts:
+        same_ts_veh = vehicles_df[vehicles_df['timestamp_ms'] == single_ts]
+        same_ts_ped = pedes_df[pedes_df['timestamp_ms'] == single_ts]  
+
+        for row1 in range(0,len(same_ts_veh)):
+            for row2 in range(0,len(same_ts_ped)):
+                veh_x = same_ts_veh.iloc[row1, 4]
+                veh_y = same_ts_veh.iloc[row1, 5]
+                veh_trackid = same_ts_veh.iloc[row2, 0]
+                
+                ped_x = same_ts_ped.iloc[row2, 4]
+                ped_y = same_ts_ped.iloc[row2, 5]
+                ped_trackid = same_ts_ped.iloc[row2, 0]
+                
+                lower_x = ped_x-10 #upperleft_x = lowerleft_x
+                higher_x = ped_x+10 #upperright_x = lowerright_x
+                lower_y = ped_y-10 #lowerleft_y = lowerright_y
+                higher_y = ped_y+10 #upperleft_y = upperright_y
+                
+                if veh_x>=lower_x and veh_x<=higher_x and veh_y>=lower_y and veh_y<=higher_y:
+                    distance_gap = ((veh_x-ped_x)**2 + (veh_y-ped_y)**2)**0.5
+                    add_row = pd.DataFrame([{'Pedestrian TrackID' : ped_trackid, "Vehicle TrackID": veh_trackid , 'Timestamp': single_ts, 'Gap': distance_gap}])
+                    interact = pd.concat([interact, add_row], ignore_index = True)
+                    
+    interact.to_csv("interact.csv")
+    return interact
+
+    """
+    for row in range(0,len(ped_on_road_df)):
+
+        
+        
+        
+        
+    for row in range(0,len(ped_on_road_df)):
+        startts = ped_on_road_df.iloc[row,3]
+        endts = ped_on_road_df.iloc[row,6]
+
+        for allts in range(startts, endts+100, 100):
+            all_ped_ts.append(allts)
+            
+    for single_ts in all_ped_ts:
+        same_ts_veh = vehicles_df[vehicles_df['timestamp_ms'] == single_ts]
+        same_ts_ped = pedes_df[pedes_df['timestamp_ms'] == single_ts]
+        
+        for row1 in range(0,len(same_ts_veh)):
+            for row2 in range(0,len(same_ts_ped)):
+                ped_trackid = same_ts_ped.iloc[row2, 0]
+
+                ped_status_on_road = ped_on_road_df[ped_on_road_df['Track ID'] == ped_trackid]
+
+                
+                veh_x = same_ts_veh.iloc[row1, 4]
+                veh_y = same_ts_veh.iloc[row1, 5]
+                veh_trackid = same_ts_veh.iloc[row2, 0]
+    
+        startx = ped_on_road_df.iloc[row,1]
+        starty = ped_on_road_df.iloc[row,2]
+        endx = ped_on_road_df.iloc[row,4]
+        endy = ped_on_road_df.iloc[row,5]
+            
+    """
+
+    """
     for p_trackid in all_ped_trackids:
         curr_ped = pedes_df[pedes_df['track_id'] == p_trackid]  
         
@@ -32,7 +108,8 @@
     
     interaction_in_short = pd.DataFrame(columns =['Pedestrian TrackID', 'Vehicle TrackID', 'Interaction duration', 'Start Timestamp', 'Last Timestamp', 'Minimum Gap (timestamp)', 'Minimum Gap (speed)', 'Maximum Gap (timestamp)', 
                                    'Maximum Gap (speed)', 'Minimum Speed (timestamp)', 'Maximum Speed (timestamp)', 'Average Speed of Vehicle'])
-    """
+    
+    ######
     row_read = 0
     for ptrack_id in all_ped_trackids:
         for vtrack_id in all_veh_trackids:
@@ -84,3 +161,4 @@
     interaction_in_short.to_csv("file1.csv")
     
     """
+
