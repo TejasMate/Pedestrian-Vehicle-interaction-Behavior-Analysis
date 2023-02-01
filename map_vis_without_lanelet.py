@@ -21,7 +21,7 @@ def getpoints():
     global mode
     mode = 1
     mappoints = pd.read_csv("mappoints.csv")
-    os.remove("mappoints.csv")
+    #os.remove("mappoints.csv")
     return mappoints
 
 class Point:
@@ -159,4 +159,9 @@ def draw_map_without_lanelet(filename, axes, lat_origin, lon_origin):
         if False == os.path.exists("mappoints.csv"):
             tempdict = {'x': xs, 'y': ys}
             df = pd.DataFrame(tempdict)
-            df.to_csv("mappoints.csv")
+            df = df.sort_values(by=['x', 'y'])
+            df = df.drop_duplicates()
+                        
+            df.to_csv("mappoints.csv", index = False)
+            
+    

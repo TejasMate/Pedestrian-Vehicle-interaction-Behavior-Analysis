@@ -7,10 +7,8 @@ import matplotlib.pyplot as plt
 
 # Use map_vis_without_Lanelet library to visual Map
 import map_vis_without_lanelet
-
+"""
 def one(vehicles_df, pedes_df, interact_df, map_path):
-    
-    
     
     # to subplot only one visual
     fig, axes = plt.subplots(1, 1)
@@ -58,13 +56,13 @@ def one(vehicles_df, pedes_df, interact_df, map_path):
         # Plot previously plotted vehicle & pedestrian coordinates to show highlighted 
         # route where vehicles is moved out
         if True == same_ts_ped_df.empty:
-            """
+            ""
             prev_plot_veh = pd.concat([prev_plot_veh, same_ts_veh_df], ignore_index = True)
             plt.scatter(prev_plot_veh['x'], prev_plot_veh['y'], color="lightblue", s=prev_plot_veh['width'])
         
             prev_plot_ped = pd.concat([prev_plot_ped, same_ts_ped_df], ignore_index = True)
             plt.scatter(prev_plot_ped['x'], prev_plot_ped['y'], color="orange", s=2)    
-            """
+            ""
             
         # Plot Vehicles coordinate as per current loop's timestamp
         plt.scatter(same_ts_veh_df['x'], same_ts_veh_df['y'], color="blue", s=same_ts_veh_df['width'])
@@ -89,6 +87,7 @@ def one(vehicles_df, pedes_df, interact_df, map_path):
             
         plt.show()
 """
+
 def one(vehicles_df, pedes_df, interaction_in_short, map_path):
     
     # to subplot only one visual
@@ -156,7 +155,7 @@ def one(vehicles_df, pedes_df, interaction_in_short, map_path):
         plt.show()
         
         
-"""
+
 """
 def two(vehicles_df, pedes_df, interaction_in_short, map_path):
     
