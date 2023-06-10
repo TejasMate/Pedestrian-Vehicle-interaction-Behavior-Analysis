@@ -1,29 +1,29 @@
-#!/usr/bin/env python
-
 import matplotlib
 import matplotlib.axes
 import matplotlib.pyplot as plt
-
 import xml.etree.ElementTree as xml
 import pyproj
 import math
 import os
 import pandas as pd
-import pathlib
 
 import dict_utils
+import files
 
 xs = []
 ys = []
 mode = 0
-
+"""
 def getpoints():
     global mode
     mode = 1
-    mappoints = pd.read_csv("mappoints.csv")
+    mappoints = pd.read_csv("Generated Files/Map Coordinates.csv")
+    print("Dataframe of Map Coordinates that makes Curbstone border")
+    print(mappoints)
+    #mappoints = np.loadtxt("mappoints.csv", delimiter=",", dtype=float)
     #os.remove("mappoints.csv")
     return mappoints
-
+"""
 class Point:
     def __init__(self):
         self.x = None
@@ -127,7 +127,7 @@ def draw_map_without_lanelet(filename, axes, lat_origin, lon_origin):
             else:
                 type_dict = dict(color="white", linewidth=2, zorder=10)
         elif way_type == "pedestrian_marking":
-            type_dict = dict(color="white", linewidth=1, zorder=10, dashes=[5, 10])
+            type_dict = dict(color="green", linewidth=1, zorder=10, dashes=[5, 10])
         elif way_type == "bike_marking":
             type_dict = dict(color="white", linewidth=1, zorder=10, dashes=[5, 10])
         elif way_type == "stop_line":
@@ -147,21 +147,25 @@ def draw_map_without_lanelet(filename, axes, lat_origin, lon_origin):
 
         x_list, y_list = get_x_y_lists(way, point_dict)
         
-        xs.extend(x_list)
-        ys.extend(y_list)
-        
         plt.plot(x_list, y_list, **type_dict)
+    """
+        if way_type == "curbstone":
+            xs.extend(x_list)
+            ys.extend(y_list)
+            
+    #plt.savefig(f"{files.MAP_DATA}/Map.png")
+    """
 
-    if len(unknown_linestring_types) != 0:
-        print("Found the following unknown types, did not plot them: " + str(unknown_linestring_types))
+
     
+    #if len(unknown_linestring_types) != 0:
+        #print("Found the following unknown types, did not plot them: " + str(unknown_linestring_types))
+    """
     if mode == 0:
-        if False == os.path.exists("mappoints.csv"):
+        if False == os.path.exists("Generated Files/Map Coordinates.csv"):
             tempdict = {'x': xs, 'y': ys}
             df = pd.DataFrame(tempdict)
-            df = df.sort_values(by=['x', 'y'])
             df = df.drop_duplicates()
-                        
-            df.to_csv("mappoints.csv", index = False)
-            
-    
+            dfx = df.sort_values(by=['x', 'y'])
+            #dfx.to_csv(f"{files.MAP_DATA}/Map Coordinates.csv", index = False)
+    """    

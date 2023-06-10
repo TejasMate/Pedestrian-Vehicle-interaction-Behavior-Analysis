@@ -1,83 +1,43 @@
-# Readymade modules 
-import pandas as pd
-import numpy as np
-
-# Custom made modules
-import loader
-import plot
-import vehicle_speed as spd
-import pedonroad
+import files
+import osmtocoordinates as otc
+import speed
+import distance
 import interaction
+import plot
+import interactions.interact_pair as interact_pair
+import allplot 
+import pedonroad
 
-#map_path = 'maps/DR_DEU_Roundabout_OF.osm'
-#pedes_df = pd.read_csv("recorded_trackfiles/DR_DEU_Roundabout_OF/pedestrian_tracks_000.csv")
-#vehicles_df = pd.read_csv("recorded_trackfiles/DR_DEU_Roundabout_OF/vehicle_tracks_000.csv")
-
-# Path of Map, Pedestrian & Vehicle Datasets
-map_path, ped_df_path, veh_df_path = loader.getpath()
-
-# Converting Datasets into Dataframe
-pedes_df = pd.read_csv(ped_df_path)
-vehicles_df = pd.read_csv(veh_df_path)
-
-all_veh_trackids = np.unique(vehicles_df['track_id'].to_numpy())
-all_ped_trackids = np.unique(pedes_df['track_id'].to_numpy())
-
-vehicles_df['speed'] = ''
-vehicles_df, vehicles_avg_speed = spd.speed(vehicles_df, all_veh_trackids)
-
-ped_on_road_df = pedonroad.check(map_path, pedes_df, all_ped_trackids)
-
-interact_df = interaction.interact(vehicles_df, pedes_df, all_veh_trackids, all_ped_trackids, ped_on_road_df)
-
-plot.one(vehicles_df, pedes_df, interact_df, map_path)
+#Load Map, Pedestrian & Vehicle Datasets into above variables
+map, pedestrian_df, vehicle_df = files.load()
+map_coords_df, min_max = otc.getcoords(map, 0, 0)
 
 
 
+# Find Speed and Distance covered by Pedestrian & Vehicle 
+# Add new column of Speed and Distance covered in Dataframe 
+pedestrian_df, vehicle_df = speed.find(pedestrian_df, vehicle_df)
+pedestrian_df, vehicle_df = distance.find(pedestrian_df, vehicle_df)
 
-#print("1. Plot only current trajectory without any Past/Future trajectories of every Pedestrian & Vehicle")
-#print("2. Plot current trajectory with Previous 10 and Next 10 trajectories of every Pedestrian & Vehicle") 
+# Find crossing details of Pedestrian
+ped_on_road_df = pedonroad.check(map_coords_df, pedestrian_df, vehicle_df)
+# call ped_on_road_df
 
+# Find interaction between Pedestrian and Vehicle
+#interact_df, ped_on_road_df, poly_coords_dict = interaction.find(vehicle_df, pedestrian_df, map, map_coords_df)
 
-# Plot only current trajectory without any Past/Future trajectories of every Pedestrian & Vehicle
-# plot.one(vehicles_df, pedes_df, interaction_in_short, map_path)
+# Plot Vehicle and Pedestrian Coordinates from respective DataFrame 
+#ag_plot.visualize(map_coords_df, min_max, pedestrian_df, vehicle_df, map)
 
-# Plot current trajectory with Previous 10 and Next 10 trajectories of every Pedestrian & Vehicle
-#plot.two(vehicles_df, pedes_df, interact_df, map_path)
+#interact_onepair = interact_pair.onepair(interact_df, vehicle_df, pedestrian_df)
 
-"""
-# Plot current trajectory with Previous 10 and Next 10 trajectories of only of Pedestrian
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-# Plot current trajectory with Previous 10 and Next 10 trajectories of only of Vehicles
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-# Plot current trajectory with all past trajectories of every Pedestrian & Vehicle
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-# Plot current trajectory with all past trajectories and next future 10 trajectories of every Pedestrian & Vehicle
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-# Plot current trajectory with all past trajectories and next future 10 trajectories of only of Pedestrian
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-# Plot current trajectory with all past trajectories and next future 10 trajectories of only of Vehicle
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-
-# Plot current trajectory with all future trajectories of every Pedestrian & Vehicle
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-# Plot current trajectory with all future trajectories and previous past 10 trajectories of every Pedestrian & Vehicle
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-# Plot current trajectory with all future trajectories and previous past 10 trajectories of only of Pedestrian
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-# Plot current trajectory with all future trajectories and previous past 10 trajectories of only of Vehicle
-plot.two(vehicles_df, pedes_df, interaction_in_short, map_path)
-
-"""
-
-
-
+# Analysis on Interaction pair(s)
+while(True):
+    choice = input("Do you want analysis of all interaction pairs or individual pair? \n Y for all interaction pairs or \n N for individual pair\n")
+    if choice == "Y":
+        #interact_onepair = interact_pair.all(interact_df, vehicle_df, pedestrian_df)
+        interact_pair.all(vehicle_df, pedestrian_df, ped_on_road_df)
+        break
+    elif choice == "N":
+        #interact_onepair = interact_pair.individual(interact_df, vehicle_df, pedestrian_df)
+        break

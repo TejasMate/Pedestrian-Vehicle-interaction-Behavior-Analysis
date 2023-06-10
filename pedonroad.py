@@ -1,204 +1,200 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-import math
 import numpy as np
+from sklearn.neighbors import KDTree
+import os
+from scipy.spatial import KDTree
 
-import map_vis_without_lanelet
+import osmtocoordinates
+import files
+import pedestrian_individual
+import math
+
+def pedpoly(center_x, center_y, range_size, mappoints): #mappoints is dataframe with x and y coordinates
+         
+    # Determine range axis based on range size and range of values in dataframe
+    x_range = mappoints['x'].max() - mappoints['x'].min()
+    y_range = mappoints['y'].max() - mappoints['y'].min()
+    if x_range > y_range and range_size <= x_range:
+        range_axis = 'x'
+    elif y_range > x_range and range_size <= y_range:
+        range_axis = 'y'
+    else:
+        print("Range size too large for any axis, please enter a smaller range size.")
+        exit()
     
-"""
-def pedroadarea(all_ped_trackids, ped_on_road_df, mappoints):
-    pedroadarea = pd.DataFrame()
-    local_mappoints = np.array(mappoints[['x' ,'y']])
+    # Filter dataframe to include only points within the specified range
+    if range_axis == 'x':
+        nearby_df = mappoints[(mappoints['x'] >= center_x - range_size) & (mappoints['x'] <= center_x + range_size)]
+    elif range_axis == 'y':
+        nearby_df = mappoints[(mappoints['y'] >= center_y - range_size) & (mappoints['y'] <= center_y + range_size)]
     
-    hor_mappoints = mappoints.sort_values(by=['x', 'y'])   
-    ver_mappoints = mappoints.sort_values(by=['y', 'x'])
-
-    for row in ped_on_road_df:
-        start_x = ped_on_road_df.iloc[row,1]
-        start_y = ped_on_road_df.iloc[row,2]
-        end_x = ped_on_road_df.iloc[row,4]
-        end_y = ped_on_road_df.iloc[row,5]
-
-        x_gap = abs(start_x - end_x)
-        y_gap = abs(start_y - end_y)
-
-        if x_gap > y_gap:
-            print("pedestrian walking in horizontal direction")
-            print("coverage increased by x sides") #x firsy
-        elif y_gap> x_gap:
-            index = df[df[‘Name’]==’Donna’].index.values)
-            print("vertical walking")
-            print("coverage increased by y sides")  #y first
-        else:
-            print("Linear walking")
+    # Find the two nearest points to the center point
+    tree = KDTree(nearby_df[['x', 'y']])
+    dist, ind = tree.query([[center_x, center_y]], k=2)
+    
+    # Fit a line to the two nearest points
+    point1 = nearby_df.iloc[ind[0][0]]
+    point2 = nearby_df.iloc[ind[0][1]]
+    line_params = np.polyfit([point1['x'], point2['x']], [point1['y'], point2['y']], 1)
+    
+    # Get the nearby coordinates that lie on the line passing through the two nearest points
+    if range_axis == 'x':
+        line_nearby_df = nearby_df[np.abs(nearby_df['y'] - np.polyval(line_params, nearby_df['x'])) <= range_size]
         
-
-    
-    print(local_mappoints)
-    
-    for ped in all_ped_trackids:
-        start_points = np.array([[ped_on_road_df.iloc[row,1],ped_on_road_df.iloc[row,2]]])
-        start_local_mappoints = np.setdiff1d(local_mappoints, start_points)
+        # Append center point to the dataframe
+        center_row = pd.DataFrame({'x': [center_x], 'y': [center_y]})
+        line_nearby_df = pd.concat([line_nearby_df, center_row])  
         
-        i = 1
-        first = 0      
+    elif range_axis == 'y':
+        line_nearby_df = nearby_df[np.abs(nearby_df['x'] - np.polyval(line_params, nearby_df['y'])) <= range_size]
+        
+        # Append center point to the dataframe
+        center_row = pd.DataFrame({'x': [center_x], 'y': [center_y]})
+        line_nearby_df = pd.concat([line_nearby_df, center_row])  
 
-        while(i):
+    
+    line_nearby_df = line_nearby_df.sort_values(by=range_axis)
+           
+    return line_nearby_df, range_axis
+
+def calculate_distance(x1, y1, x2, y2):
+    return np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+
+#def check(map_path, local_pedes_df):
+def check(map_coords_df, local_pedes_df, vehicle_df):
+
+    if os.path.exists(f"{files.TRACKFILE_DATA}/Pedestrians on road.csv"):
+        ped_on_road_df = pd.read_csv(f"{files.TRACKFILE_DATA}/Pedestrians on road.csv")
+        df = pd.DataFrame()
+        for idx, pedestrian_row in ped_on_road_df.iterrows():
+            ped = pedestrian_row['Track ID']
+            startts = pedestrian_row['Crossing start at TS']
+            endts = pedestrian_row['Crossing ends at TS']
+            veh = pedestrian_row['vid']
+            dec = pedestrian_row['dvalue']
+
+            curr_ped = local_pedes_df[(local_pedes_df['track_id'] == ped) & (local_pedes_df['timestamp_ms'] == startts)]
+            print(pedestrian_row)
+            print(curr_ped)
+            startx= float(curr_ped['x'])
+            starty =  float(curr_ped['y'])
+
+            curr_ped = local_pedes_df[(local_pedes_df['track_id'] == ped) & (local_pedes_df['timestamp_ms'] == endts)]
             
-            dist = []
-            c = 0
-            least_distance = 0
-            for i in range(0, len(start_local_mappoints)):
-                xa = int(line_points[i][0])
-                ya = int(pt[0])
-                xb = int(line_points[i][1])
-                yb = int(pt[1])
-                # Euclidean distance formula
-                distance = math.sqrt(((xa – ya)**2) + ((xb – yb)**2))
-                dist.append(distance)
-                # Finding the least distance value
-                if distance <= least_distance:
-                    least_distance = distance
+            endx = float(curr_ped['x'])
+            endy =  float(curr_ped['y'])
             
-            # Finding the points with least distance
-            c_list = list()
-            for i in range(len(dist)):
-                if dist[i] == least_distance:
-                    c_list.append(line_points[i])
-
-print("Points which are closer to the point P : ", tuple(c_list))
-                
-    """        
-        
-    """
-    for row in range(0,len(ped_on_road_df)):
-        
-        
-        
-        startts = ped_on_road_df.iloc[row,3]
-        endts = ped_on_road_df.iloc[row,6]
-        
-        start_x = ped_on_road_df.iloc[row,1]
-        start_y = ped_on_road_df.iloc[row,2]
-        end_x = ped_on_road_df.iloc[row,4]
-        end_y = ped_on_road_df.iloc[row,5]
-
-        start_line = []
-        
-        
-        suppose_lr_x = startts+1
-        suppose_lr_y = 
-        
-        condition = 1
-        while(condition):
+            lanewidth = math.sqrt((endx - startx)**2 + (endy - starty)**2)
             
-            condition = 0
-    """
-        
-
-
-def check(map_path, pedes_df, all_ped_trackids):
-    fig, axes = plt.subplots(1, 1)
-    map_vis_without_lanelet.draw_map_without_lanelet(map_path, axes, 0, 0)
-    mappoints = map_vis_without_lanelet.getpoints()
+            df2 = pd.DataFrame([{'Track ID': ped, 'Vehicle Track ID': veh, 'Crossing start X': startx, 'Crossing start Y': starty, 'Crossing start at TS': startts, 'Crossing ends X': endx, 'Crossing ends Y': endy, 'Crossing ends at TS': endts, 'Lanewidth': lanewidth, 'Decision': dec}])
+            df = pd.concat([df, df2]) 
+        dir=f"{files.TRACKFILE_DATA}/Pedestrians on roadss.csv"
+        df.to_csv(dir)
+        return ped_on_road_df
+    else:
+        ped_on_road_df = pd.DataFrame()
     
-    pedstartx = []
-    pedstarty = []
-    pedstartts = []
-    pedendx = []
-    pedendy = []
-    pedendts = []
-    pedx1 = []
-    pedy1 = []
-    pedx2 = []
-    pedy2 = []
-    pedx3 = []
-    pedy3 = []
-    pedx4 = []
-    pedy4 = []
-    startx = starty = startts = endx =  endy = endts = ''
-    
-    for p_trackid in all_ped_trackids:
-        curr_ped = pedes_df[pedes_df['track_id'] == p_trackid]  
-        
-        for pedrow in range(0, len(curr_ped)-1):
-            outerloop = 0
-    
-            for maprow in range(0, len(mappoints)-1):
-                ped_x = round(curr_ped.iloc[pedrow,4])
-                ped_y = round(curr_ped.iloc[pedrow,5])
-                map_x = round(mappoints.iloc[maprow,0])
-                map_y = round(mappoints.iloc[maprow,1])
-      
-                if (ped_x == map_x) and (ped_y == map_y):
-                    startx = curr_ped.iloc[pedrow,4]
-                    starty = curr_ped.iloc[pedrow,5]
-                    startts = curr_ped.iloc[pedrow,2]
-                    outerloop = 1
-                    break
+        ped_grp_by_trackid = local_pedes_df.groupby('track_id')
+        all_ped_trackids = np.unique(local_pedes_df['track_id'].to_numpy())
                     
-            if outerloop == 1:
-                break
+        for p_trackid in all_ped_trackids:
+            curr_ped = ped_grp_by_trackid.get_group(p_trackid)
+            
+            # Convert xyz dataframe to a set of tuples containing x and y coordinates
+            xyz_set = set([(round(x, 3), round(y, 3)) for x, y in zip(vehicle_df['x'], vehicle_df['y'])])
+            
+            # Iterate over curr_ped dataframe and remove matching coordinates
+            for idx, pedestrian_row in curr_ped.iterrows():
+                x_pedestrian = round(pedestrian_row['x'], 3)
+                y_pedestrian = round(pedestrian_row['y'], 3)
                 
-        for pedrow in range(len(curr_ped)-1, 0, -1):
-            outerloop = 0
-    
-            for maprow in range(len(mappoints)-1, 0, -1):
-                ped_x = round(curr_ped.iloc[pedrow,4])
-                ped_y = round(curr_ped.iloc[pedrow,5])
-                map_x = round(mappoints.iloc[maprow,0])
-                map_y = round(mappoints.iloc[maprow,1])
+                if (x_pedestrian, y_pedestrian) in xyz_set:
+                    curr_ped.drop(idx, inplace=True)
+            
+            # Reduce decimal places to 2
+            for idx, pedestrian_row in curr_ped.iterrows():
+                x_pedestrian = round(pedestrian_row['x'], 2)
+                y_pedestrian = round(pedestrian_row['y'], 2)
                 
-                if (ped_x == map_x) and (ped_y == map_y):
-                    endx = curr_ped.iloc[pedrow,4]
-                    endy = curr_ped.iloc[pedrow,5]
-                    endts = curr_ped.iloc[pedrow,2]
-                    outerloop = 1
-                    break
-                    
-            if outerloop == 1:
-                break
-        
-        slope = (endy-starty)/(endx-startx)
-        rad = math.atan(slope)
-        
-        x1 = endx-2
-        y1 = endy-2
-        x4 = startx-2
-        y4 = starty-2
-        x2 = endx+2
-        y2 = endy+2
-        x3 = startx+2
-        y3 = starty+2
-        
-        xx1 = x1 * math.cos(rad) + y1 * math.sin(rad)
-        yy1 = -x1 * math.sin(rad) + y1 * math.cos(rad)
-        xx2 = x2 * math.cos(rad) + y2 * math.sin(rad)
-        yy2 = -x2 * math.sin(rad) + y2 * math.cos(rad)
-        xx3 = x3 * math.cos(rad) + y3 * math.sin(rad)
-        yy3 = -x3 * math.sin(rad) + y3 * math.cos(rad)
-        xx4 = x4 * math.cos(rad) + y4 * math.sin(rad)
-        yy4 = -x4 * math.sin(rad) + y4 * math.cos(rad)
-        
-        pedstartx.append(startx)
-        pedstarty.append(starty)
-        pedstartts.append(startts)
-        pedendx.append(endx)
-        pedendy.append(endy)
-        pedendts.append(endts)
-        pedx1.append(xx1)
-        pedy1.append(yy1)
-        pedx2.append(xx2)
-        pedy2.append(yy2)
-        pedx3.append(xx3)
-        pedy3.append(yy3)
-        pedx4.append(xx4)
-        pedy4.append(yy4)
-     
-    ped_on_road_df = pd.DataFrame({'Track ID': all_ped_trackids, 'Crossing starts at X': pedstartx, 'Crossing starts at Y': pedstarty, 'Crossing start at TS': pedstartts,'Crossing ends at X': pedendx, 'Crossing ends at Y': pedendy, 'Crossing ends at TS': pedendts,  'x1': pedx1, 'y1': pedy1, 'x2': pedx2, 'y2': pedy2, 'x3': pedx3, 'y3': pedy3, 'x4': pedx4, 'y4': pedy4})
-    ped_on_road_df.to_csv("Pedestrians on road.csv")
-    
-    #pedroadarea(all_ped_trackids, ped_on_road_df, mappoints)
-    
-    
+                if (x_pedestrian, y_pedestrian) in xyz_set:
+                    curr_ped.drop(idx, inplace=True)
+            
+            # Reduce decimal places to 1
+            for idx, pedestrian_row in curr_ped.iterrows():
+                x_pedestrian = round(pedestrian_row['x'], 1)
+                y_pedestrian = round(pedestrian_row['y'], 1)
+                
+                if (x_pedestrian, y_pedestrian) in xyz_set:
+                    curr_ped.drop(idx, inplace=True)
+                        
+            map_coords_array = map_coords_df[['X', 'Y']].values
+            
+            kd_tree = KDTree(map_coords_array)
+            
+            start_row = None
+            min_distance_start = float('inf')
+            
+            for _, pedestrian_row in curr_ped.iterrows():
+                x_pedestrian = pedestrian_row['x']
+                y_pedestrian = pedestrian_row['y']
+            
+                _, nearest_idx = kd_tree.query([(x_pedestrian, y_pedestrian)], k=1)
+                nearest_coords = map_coords_array[nearest_idx][0]
+            
+                distance = calculate_distance(x_pedestrian, y_pedestrian, nearest_coords[0], nearest_coords[1])
+                if distance < min_distance_start:
+                    min_distance_start = distance
+                    start_row = pedestrian_row
+            
+            start_row_index = start_row.name
+            
+            last_row = None
+            min_distance_last = float('inf')
+            
+            # Exclude rows until the start row index and slice the start row if the DataFrame has at least one row
+            if not curr_ped.empty:
+                if len(curr_ped) > 1:
+                    curr_ped = curr_ped.loc[start_row_index:].iloc[1:]
+                start_row = curr_ped.iloc[0] if not curr_ped.empty else None
+            
+            for _, pedestrian_row in curr_ped.iloc[::-1].iterrows():
+                x_pedestrian = pedestrian_row['x']
+                y_pedestrian = pedestrian_row['y']
+            
+                _, nearest_idx = kd_tree.query([(x_pedestrian, y_pedestrian)], k=1)
+                nearest_coords = map_coords_array[nearest_idx][0]
+            
+                distance = calculate_distance(x_pedestrian, y_pedestrian, nearest_coords[0], nearest_coords[1])
+                if distance < min_distance_last:
+                    min_distance_last = distance
+                    last_row = pedestrian_row
+            
+            if start_row is None:
+                print(p_trackid)
+            else:
+                print(p_trackid+" is crossing road from timestamp "+str(start_row['timestamp_ms'])+" to timestamp "+str(last_row['timestamp_ms']))
+            
+            start_ts = input("Enter timestamp when Pedestrian starts crossing the road: ")
+            end_ts = input("Enter timestamp when Pedestrian ends crossing the road: ")
+
+            """
+            choice = input("Do you want to correct timestamps? \n Y or N: ")
+            if choice == "Y":
+                #pedestrian_individual.plot(ped_grp_by_trackid.get_group(p_trackid), map_coords_df)
+                start_ts = input("Enter timestamp when Pedestrian starts crossing the road: ")
+                end_ts = input("Enter timestamp when Pedestrian ends crossing the road: ")
+            else:
+                start_ts = start_row['timestamp_ms']
+                end_ts = last_row['timestamp_ms']
+            """
+                
+            append_row = pd.DataFrame([{'Track ID': p_trackid, 'Crossing start at TS': start_ts, 'Crossing ends at TS': end_ts}])
+            ped_on_road_df = pd.concat([ped_on_road_df, append_row])  
+            ped_on_road_df.to_csv(f"{files.TRACKFILE_DATA}/Pedestrians on road.csv")    
+            
+            
+
+        #save.to_json(poly_coords)
     return ped_on_road_df
