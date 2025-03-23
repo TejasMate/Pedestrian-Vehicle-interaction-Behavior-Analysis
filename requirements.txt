@@ -1,0 +1,10 @@
+pandas
+numpy
+matplotlib
+pyproj
+shapely
+statsmodels
+seaborn
+scipy
+scikit-learn
+pyarrow
